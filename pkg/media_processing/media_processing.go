@@ -80,8 +80,8 @@ func FFProbe(url string)(*Media, error){
 		url,
 	)
 
-	info, nil := ExecuteFFProbeCommand(cmd)
-	return info, nil
+	info, err := ExecuteFFProbeCommand(cmd)
+	return info, err
 }
 
 // FFProbe runs FFprobe with custom parameters (OTF)
@@ -98,8 +98,8 @@ func FFProbeCustom(url string, custom_parameters string)(*Media, error){
 		custom_parameters,
 		url,
 	)
-	info, nil := ExecuteFFProbeCommand(cmd)
-	return info, nil
+	info, err := ExecuteFFProbeCommand(cmd)
+	return info, err
 }
 
 // FFMpegAudioOnly (FFMpeg Audio Only OTF)
