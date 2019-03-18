@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cielo24/cbt24/util"
+	//"github.com/cielo24/cbt24/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
