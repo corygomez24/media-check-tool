@@ -37,6 +37,10 @@ type TranscodedMedia struct {
 	FileName string `json:"file_name"`
 }
 
+type MediaInfoJson struct {
+	Media  map[string]interface{}  `json:"media"`
+}
+
 type FFMpegResults struct {
 	FileNameMP3   string  `json:"file_name_mp3"`
 	ErrorMP3      error  `json:"error_mp3"`
@@ -183,9 +187,15 @@ func FFMpegSnippetize(){}
 func FFMpegSegmentize(){}
 
 // MediaInfo runs media through the MediaInfo tool
-func MediaInfo(url string)(string, error){
+func MediaInfo(url string)(*MediaInfoJson, error){
+	cmd := exec.Command(
+		"mediainfo",
+		"--Output=JSON",
+		url,
+	)
 
-	return "", nil
+	data, err := ExecuteMediaInfoCommand(cmd)
+	return data, err
 }
 
 // CallCheckMedia makes a call to the check media service
@@ -319,4 +329,20 @@ func ExecuteFFMpegCommand(cmd *exec.Cmd, FileName string)(*TranscodedMedia, erro
 	results := &TranscodedMedia{}
 	results.FileName = FileName
 	return results, nil
+}
+
+func ExecuteMediaInfoCommand(cmd *exec.Cmd)(*MediaInfoJson, error){
+	var cmdOut, cmdErr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &cmdOut, &cmdErr
+
+	if err := cmd.Run(); err != nil{
+		// TODO: Error Logic
+		return nil, err
+	}
+	data := &MediaInfoJson{}
+	if err := json.Unmarshal(cmdOut.Bytes(), &data); err != nil{
+		// TODO: Error Logic
+		return nil, err
+	}
+	return data, nil
 }
