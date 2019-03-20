@@ -1,13 +1,15 @@
-package media_processing
+package media_check_tool
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/satori/go.uuid"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"os/exec"
 	"strconv"
-	"github.com/satori/go.uuid"
+	"strings"
 	"time"
 )
 
@@ -25,6 +27,10 @@ type Media struct {
 
 	// Size of file in bytes.
 	Size uint64
+}
+
+type MediaError struct {
+	Error  map[string]interface{}  `json:"error"`
 }
 
 type TranscodedMedia struct {
@@ -62,6 +68,7 @@ type Stream struct {
 	Width         int64             `json:"width"`
 	Height        int64             `json:"height"`
 	Tags          map[string]string `json:"tags,omitempty"`
+	ExtraData     string            `json:"extradata"`
 }
 
 
@@ -70,7 +77,7 @@ func extractError(e error, s string) error {
 }
 
 // FFProbe runs default FFprobe (OTF)
-func FFProbe(url string)(*Media, error){
+func FFProbe(url string)(*Media, *MediaError){
 	cmd := exec.Command(
 		"ffprobe",
 		"-v", "quiet",
@@ -87,18 +94,15 @@ func FFProbe(url string)(*Media, error){
 }
 
 // FFProbe runs FFprobe with custom parameters (OTF)
-func FFProbeCustom(url string, custom_parameters string)(*Media, error){
+func FFProbeCustom(url string, custom_parameters []string)(*Media, *MediaError){
+
+	// Had to stringify the Array of custom parameters so I can append url to the end of the []string
+	custom_parameters_w_url_string := strings.Join(custom_parameters, ",") + fmt.Sprintf(",%v", url)
+	custom_parameters_w_url := strings.Split(custom_parameters_w_url_string, ",")
 
 	cmd := exec.Command(
 		"ffprobe",
-		"-v", "quiet",
-		"-print_format", "json",
-		"-show_format",
-		"-show_streams",
-		"-show_error",
-		"-show_chapters",
-		custom_parameters,
-		url,
+		custom_parameters_w_url...,
 	)
 	info, err := ExecuteFFProbeCommand(cmd)
 	return info, err
@@ -234,20 +238,26 @@ func CallBlankAudio(url string, job_id string, maximum_silence_percent float64, 
 
 }
 
-// RunServer starts the local check media suite
-func RunServer(){}
+// RunServer starts the local check media suite (cmd/main.go should be where the server is
+//func RunServer(){}
 
-func ExecuteFFProbeCommand(cmd *exec.Cmd)(*Media, error){
+func ExecuteFFProbeCommand(cmd *exec.Cmd)(*Media, *MediaError){
+	errors := &MediaError{}
+
 	var cmdOut, cmdErr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &cmdOut, &cmdErr
 
 	if err := cmd.Run(); err != nil {
-		return nil, extractError(err, cmdErr.String())
+		StdOut := cmdOut.Bytes()
+		mapped := make(map[string]interface{})
+		_ = json.Unmarshal(StdOut, &mapped)
+		_ = mapstructure.Decode(mapped, errors)
+		return nil, errors
 	}
 
 	info := &Media{}
 	if err := json.Unmarshal([]byte(cmdOut.String()), &info); err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	// post processing

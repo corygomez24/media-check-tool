@@ -1,53 +1,63 @@
 package main
 
 import (
-	"fmt"
-	//"github.com/cielo24/cbt24/util"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"customFfmpeg/pkg/media-check-tool"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"github.com/micro/go-log"
+	"net/http"
 )
 
-// loginCmd represents the login command
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Runs the login API call",
-	Long: `
-        Required Arguments: username, password
-        Optional Arguments`,
-	Run: func(cmd *cobra.Command, args []string) {
-		url, _ := cmd.Flags().GetString("url")
-		host, _ := cmd.Flags().GetString("host")
-		version, _ := cmd.Flags().GetString("version")
-		username, err := cmd.Flags().GetString("username")
-		password, _ := cmd.Flags().GetString("password")
 
-		fmt.Printf("SOMETHING: %s", username)
-		if err != nil {
-			fmt.Printf("err: %s", err)
-		}
+type FfprobeRequest struct {
+	URL               string  `json:"url"`
+	CustomParameters  []string  `json:"custom_parameters"`
+}
 
-		if url == "" {
-			url = "api.cielo24.com"
-		}
-		if host == "" {
-			host = "api.cielo24.com"
-		}
-		if version == "" {
+func main(){
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.GET("/", checkHealth)
+	e.GET("/healthz", checkHealth)
+	e.POST("/check/ffprobe", Ffprobe)
+	e.POST("/check/ffprobe/custom", FfprobeCustom)
+	e.Logger.Fatal(e.Start(":1333"))
+}
 
-		}
-		if viper.GetString("username") != "" {
-			username = viper.GetString("username")
-		fmt.Printf("USERNAME: %s", username)
-		}
-		if viper.GetString("password") != "" {
-			password = viper.GetString("password")
-		}
-		loginSuccess := util.Login(url, version, host, username, password)
+// Health Check for Kubernetes Reasons
+func checkHealth(c echo.Context) error {
+	return c.String(http.StatusOK, "200")
+}
 
-		if loginSuccess != "" {
-			fmt.Printf("Login successful. API Token: %s", loginSuccess)
-		} else {
-			fmt.Println("Login attempt failed")
-		}
-	},
+// FFProbe: returns meta data of media
+func Ffprobe(c echo.Context) error {
+	u := new(FfprobeRequest)
+	if err := c.Bind(u); err != nil {
+		return err
+	}
+	info, error := media_check_tool.FFProbe(u.URL)
+
+	log.Logf("%v", u.URL)
+
+	if error != nil {
+		return c.JSON(http.StatusInternalServerError, error)
+	}
+	return c.JSON(http.StatusOK, info)
+}
+
+// returns metadata of media with custom parameters for tool
+func FfprobeCustom(c echo.Context) error {
+	u := new(FfprobeRequest)
+	if err := c.Bind(u); err != nil {
+		return err
+	}
+	info, error := media_check_tool.FFProbeCustom(u.URL, u.CustomParameters)
+
+	log.Logf("%v, %v", u.URL, u.CustomParameters)
+
+	if error != nil {
+		return c.JSON(http.StatusInternalServerError, error)
+	}
+	return c.JSON(http.StatusOK, info)
 }

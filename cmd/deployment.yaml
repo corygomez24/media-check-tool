@@ -1,0 +1,62 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: media-check-tool
+  annotations:
+    sidecar.istio.io/inject: "true"
+  labels:
+    app: media-check-tool
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: media-check-tool
+    spec:
+      containers:
+        - name: media-check-tool
+          image: us.gcr.io/coresystem-171219/media-check-tool:${TAG}
+          imagePullPolicy: Always
+          command:
+          ports:
+            - containerPort: 1333
+          volumeMounts:
+            - name: check-media-config
+              mountPath: /etc/check-media/
+              readOnly: true
+      volumes:
+        - name: check-media-config
+          configMap: { name: check-media-config }
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: media-check-tool
+spec:
+  type: LoadBalancer
+  selector:
+    app: media-check-tool
+  ports:
+    - protocol: TCP
+      port: 443
+      name: https
+      targetPort: 443
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 1333
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: check-media-config
+data:
+  config.yaml: |-
+    server:
+     idletimeout: 5s
+     readtimeout: 5s
+     writetimeout: 5s
+     addr: ":1333"
+
+    database:
+     dsn: ""
