@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"strconv"
 	"github.com/satori/go.uuid"
+	"time"
 )
 
 
@@ -177,13 +179,60 @@ func FFMpegSnippetize(){}
 func FFMpegSegmentize(){}
 
 // MediaInfo runs media through the MediaInfo tool
-func MediaInfo(){}
+func MediaInfo(url string)(string, error){
+
+	return "", nil
+}
 
 // CallCheckMedia makes a call to the check media service
-func CallCheckMedia(){}
+func CallCheckMedia(url string, job_id string)(string, error){
+
+	checkMediaUrl := "http://check-media-service.default.svc.cluster.local"
+	requestBody := map[string]interface{}{
+		"url": url,
+		"job_id": job_id,
+		"created": fmt.Sprintf(time.Now().Format("2006-01-02 12:01:01")),
+	}
+	bytesRequestBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.Post(checkMediaUrl, "application/json", bytes.NewBuffer(bytesRequestBody))
+
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%d", req.Status), nil
+}
 
 // CallBlankAudio makes a call to the blank audio service
-func CallBlankAudio(){}
+func CallBlankAudio(url string, job_id string, maximum_silence_percent float64, silence_threshold_db float64)(string, error){
+
+	blankAudioUrl := "http://blank-audio-service.cielo24.co"
+	requestBody := map[string]interface{}{
+		"url": url, "job_id": job_id,
+		"max_silence_percent": maximum_silence_percent,
+		"silence_threshhold": silence_threshold_db,
+		"created": fmt.Sprintf(time.Now().Format("2006-01-02 12:01:01")),
+	}
+	bytesRequestBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.Post(blankAudioUrl, "application/json", bytes.NewBuffer(bytesRequestBody))
+
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%d", req.Status), nil
+
+}
 
 // RunServer starts the local check media suite
 func RunServer(){}
