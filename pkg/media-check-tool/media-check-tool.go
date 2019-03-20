@@ -251,6 +251,7 @@ func CallBlankAudio(url string, job_id string, maximum_silence_percent float64, 
 // RunServer starts the local check media suite (cmd/main.go should be where the server is
 //func RunServer(){}
 
+// Function used to run and return all ffprobe commands (genericized what can be generic)
 func ExecuteFFProbeCommand(cmd *exec.Cmd)(*Media, *MediaError){
 	errors := &MediaError{}
 
@@ -318,6 +319,7 @@ func ExecuteFFProbeCommand(cmd *exec.Cmd)(*Media, *MediaError){
 	return info, nil
 }
 
+// Function used to run and return all ffmpeg commands (genericized what can be generic)
 func ExecuteFFMpegCommand(cmd *exec.Cmd, FileName string)(*TranscodedMedia, error){
 	var cmdOut, cmdErr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &cmdOut, &cmdErr
@@ -331,6 +333,7 @@ func ExecuteFFMpegCommand(cmd *exec.Cmd, FileName string)(*TranscodedMedia, erro
 	return results, nil
 }
 
+// Function used to run and return all media-info commands (genericized what can be generic)
 func ExecuteMediaInfoCommand(cmd *exec.Cmd)(*MediaInfoJson, error){
 	var cmdOut, cmdErr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &cmdOut, &cmdErr
