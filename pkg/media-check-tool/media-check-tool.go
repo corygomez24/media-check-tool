@@ -155,7 +155,7 @@ func TranscodeToMP3(url string, tmp_file_name uuid.UUID)(*TranscodedMedia, error
 func TranscodeToWebmAudioOnly(url string, tmp_file_name uuid.UUID, duration float64)(*TranscodedMedia, error){
 
 	// Command to Transcode into webm (audio only with splash_screen)
-	webm_post_arguments := fmt.Sprintf("-loop 1 -i /bin/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f webm -acodec libvorbis -ac 2 -sws_flags lanczos -vcodec libvpx -cpu-used 3 -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.webm",  duration, tmp_file_name)
+	webm_post_arguments := fmt.Sprintf("-loop 1 -i /pkg/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f webm -acodec libvorbis -ac 2 -sws_flags lanczos -vcodec libvpx -cpu-used 3 -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.webm",  duration, tmp_file_name)
 	webm_cmd := exec.Command(
 		"ffmpeg",
 		"-sn",
@@ -169,7 +169,7 @@ func TranscodeToWebmAudioOnly(url string, tmp_file_name uuid.UUID, duration floa
 func TranscodeToMP4AudioOnly(url string, tmp_file_name uuid.UUID, duration float64)(*TranscodedMedia, error){
 
 	// Command to Transcode into mp4 (audio only with splash_screen)
-	mp4_post_arguments := fmt.Sprintf("-loop 1 -i /bin/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f mp4 -acodec aac -ab 96k -ac 2 -sws_flags lanczos -vcodec libx264 -pix_fmt yuv420p -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.mp4", duration, tmp_file_name)
+	mp4_post_arguments := fmt.Sprintf("-loop 1 -i /pkg/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f mp4 -acodec aac -ab 96k -ac 2 -sws_flags lanczos -vcodec libx264 -pix_fmt yuv420p -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.mp4", duration, tmp_file_name)
 
 	mp4_cmd := exec.Command(
 		"ffmpeg",
@@ -280,7 +280,7 @@ func TranscodeIndividualSlice(url string, slice_start int, slice_length int, aud
 			"-i", url,
 			"-sn",
 			"-loop", "1",
-			"-i", "/bin/media-check-tool/AudioOnly.png",
+			"-i", "/pkg/media-check-tool/AudioOnly.png",
 			"-max_muxing_queue_size", "50000",
 			"-ss", fmt.Sprintf("%d", accurate_seek),
 			"-t", fmt.Sprintf("%d", slice_length),
@@ -300,7 +300,7 @@ func TranscodeIndividualSlice(url string, slice_start int, slice_length int, aud
 			"-i", url,
 			"-sn",
 			"-loop", "1",
-			"-i", "/bin/media-check-tool/AudioOnly.png",
+			"-i", "/pkg/media-check-tool/AudioOnly.png",
 			"-max_muxing_queue_size", "50000",
 			"-ss", fmt.Sprintf("%d", accurate_seek),
 			"-t", fmt.Sprintf("%d", slice_length),

@@ -10,10 +10,11 @@ import (
 
 
 type DefaultRequest struct {
-	URL               string    `json:"url"`
-	CustomParameters  []string  `json:"custom_parameters"`
-	SliceStart        int       `json:"slice_start"`
-	SliceLength       int       `json:"slice_length"`
+	URL               string      `json:"url"`
+	CustomParameters  []string    `json:"custom_parameters"`
+	SliceStart        int         `json:"slice_start"`
+	SliceLength       int         `json:"slice_length"`
+	SliceData         [][]string  `json:"slice_data"`
 }
 
 func main(){
@@ -83,6 +84,7 @@ func MediaInfoRun(c echo.Context) error {
 	return c.JSON(http.StatusOK, data)
 }
 
+// Slices Individual Media
 func SliceMedia(c echo.Context) error {
 	u := new(DefaultRequest)
 	
@@ -95,6 +97,7 @@ func SliceMedia(c echo.Context) error {
 	return c.JSON(http.StatusOK, results)
 }
 
+// Slices Individual Media (no Audio)
 func SliceMediaAudioOnly(c echo.Context) error {
 	u := new(DefaultRequest)
 

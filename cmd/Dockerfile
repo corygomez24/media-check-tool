@@ -9,5 +9,7 @@ EXPOSE 443
 EXPOSE 80
 
 ADD media-check-tool /bin/media-check-tool
+RUN mkdir pkg && mkdir pkg/media-check-tool
+COPY AudioOnly.png /pkg/media-check-tool/AudioOnly.png
 
 CMD ["media-check-tool"]
