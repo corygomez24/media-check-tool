@@ -10,8 +10,10 @@ import (
 
 
 type DefaultRequest struct {
-	URL               string  `json:"url"`
+	URL               string    `json:"url"`
 	CustomParameters  []string  `json:"custom_parameters"`
+	SliceStart        int       `json:"slice_start"`
+	SliceLength       int       `json:"slice_length"`
 }
 
 func main(){
@@ -23,6 +25,8 @@ func main(){
 	e.POST("/check/ffprobe", Ffprobe)
 	e.POST("/check/ffprobe/custom", FfprobeCustom)
 	e.POST("/check/media-info", MediaInfoRun)
+	e.POST("/slice/media", SliceMedia)
+	e.POST("/slice/media/audio-only", SliceMediaAudioOnly)
 	e.Logger.Fatal(e.Start(":1333"))
 }
 
@@ -42,7 +46,7 @@ func Ffprobe(c echo.Context) error {
 	log.Logf("%v", u.URL)
 
 	if error != nil {
-		return c.JSON(http.StatusInternalServerError, error)
+		return c.JSON(http.StatusBadRequest, error)
 	}
 	return c.JSON(http.StatusOK, data)
 }
@@ -58,7 +62,7 @@ func FfprobeCustom(c echo.Context) error {
 	log.Logf("%v, %v", u.URL, u.CustomParameters)
 
 	if error != nil {
-		return c.JSON(http.StatusInternalServerError, error)
+		return c.JSON(http.StatusBadRequest, error)
 	}
 	return c.JSON(http.StatusOK, data)
 }
@@ -74,7 +78,31 @@ func MediaInfoRun(c echo.Context) error {
 	data, error :=  media_check_tool.MediaInfo(u.URL)
 
 	if error != nil {
-		return c.JSON(http.StatusInternalServerError, error)
+		return c.JSON(http.StatusBadRequest, error)
 	}
 	return c.JSON(http.StatusOK, data)
+}
+
+func SliceMedia(c echo.Context) error {
+	u := new(DefaultRequest)
+	
+	if err := c.Bind(u); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	results := media_check_tool.TranscodeIndividualSlice(u.URL, u.SliceStart, u.SliceLength, false)
+
+	return c.JSON(http.StatusOK, results)
+}
+
+func SliceMediaAudioOnly(c echo.Context) error {
+	u := new(DefaultRequest)
+
+	if err := c.Bind(u); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	results := media_check_tool.TranscodeIndividualSlice(u.URL, u.SliceStart, u.SliceStart, true)
+
+	return c.JSON(http.StatusOK, results)
 }

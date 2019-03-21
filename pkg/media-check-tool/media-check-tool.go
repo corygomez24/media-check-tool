@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/satori/go.uuid"
 	"github.com/mitchellh/mapstructure"
+	"github.com/satori/go.uuid"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -155,7 +155,7 @@ func TranscodeToMP3(url string, tmp_file_name uuid.UUID)(*TranscodedMedia, error
 func TranscodeToWebmAudioOnly(url string, tmp_file_name uuid.UUID, duration float64)(*TranscodedMedia, error){
 
 	// Command to Transcode into webm (audio only with splash_screen)
-	webm_post_arguments := fmt.Sprintf("-loop 1 -i /app/assets/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f webm -acodec libvorbis -ac 2 -sws_flags lanczos -vcodec libvpx -cpu-used 3 -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.webm",  duration, tmp_file_name)
+	webm_post_arguments := fmt.Sprintf("-loop 1 -i /bin/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f webm -acodec libvorbis -ac 2 -sws_flags lanczos -vcodec libvpx -cpu-used 3 -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.webm",  duration, tmp_file_name)
 	webm_cmd := exec.Command(
 		"ffmpeg",
 		"-sn",
@@ -169,7 +169,7 @@ func TranscodeToWebmAudioOnly(url string, tmp_file_name uuid.UUID, duration floa
 func TranscodeToMP4AudioOnly(url string, tmp_file_name uuid.UUID, duration float64)(*TranscodedMedia, error){
 
 	// Command to Transcode into mp4 (audio only with splash_screen)
-	mp4_post_arguments := fmt.Sprintf("-loop 1 -i /app/assets/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f mp4 -acodec aac -ab 96k -ac 2 -sws_flags lanczos -vcodec libx264 -pix_fmt yuv420p -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.mp4", duration, tmp_file_name)
+	mp4_post_arguments := fmt.Sprintf("-loop 1 -i /bin/media-check-tool/AudioOnly.png -max_muxing_queue_size 50000 -t %f -y -f mp4 -acodec aac -ab 96k -ac 2 -sws_flags lanczos -vcodec libx264 -pix_fmt yuv420p -vb 256k -vf \"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\" -r 1 -v error %v.mp4", duration, tmp_file_name)
 
 	mp4_cmd := exec.Command(
 		"ffmpeg",
@@ -181,7 +181,14 @@ func TranscodeToMP4AudioOnly(url string, tmp_file_name uuid.UUID, duration float
 }
 
 // FFMpeg Snippetizing OTF
-func FFMpegSnippetize(){}
+func FFMpegSnippetize(url string){
+	// Need to pull useful data:
+	// audio only
+	// how many slices
+	// how long slices are
+	// whether it should be input or determined
+}
+
 
 // FFMpeg Segmentize OTF
 func FFMpegSegmentize(){}
@@ -250,6 +257,126 @@ func CallBlankAudio(url string, job_id string, maximum_silence_percent float64, 
 
 // RunServer starts the local check media suite (cmd/main.go should be where the server is
 //func RunServer(){}
+
+func TranscodeIndividualSlice(url string, slice_start int, slice_length int, audio_only bool)(*FFMpegResults) {
+	var pre_seek int
+	var accurate_seek int
+	var webm_cmd_args []string
+	var mp4_cmd_args []string
+
+	tmp_file_name := uuid.Must(uuid.NewV4(), nil)
+
+	if slice_start > 30000 {
+		pre_seek = slice_start - 30000 // slice_start is in milliseconds
+		accurate_seek = 30000
+	}else{
+		pre_seek = 0
+		accurate_seek = slice_start
+	}
+
+	if audio_only {
+		webm_cmd_args = []string{
+			"-ss", fmt.Sprintf("%d", pre_seek),
+			"-i", url,
+			"-sn",
+			"-loop", "1",
+			"-i", "/bin/media-check-tool/AudioOnly.png",
+			"-max_muxing_queue_size", "50000",
+			"-ss", fmt.Sprintf("%d", accurate_seek),
+			"-t", fmt.Sprintf("%d", slice_length),
+			"-y",
+			"-f", "webm",
+			"-acodec", "libvorbis",
+			"-ac", "2",
+			"-sws_flags", "lanczos",
+			"-vcodec", "libvpx",
+			"-cpu-used", "3",
+			"-vb", "256k",
+			"-vf", "\"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\"",
+			"-r", "24",
+		}
+		mp4_cmd_args = []string{
+			"-ss", fmt.Sprintf("%d", pre_seek),
+			"-i", url,
+			"-sn",
+			"-loop", "1",
+			"-i", "/bin/media-check-tool/AudioOnly.png",
+			"-max_muxing_queue_size", "50000",
+			"-ss", fmt.Sprintf("%d", accurate_seek),
+			"-t", fmt.Sprintf("%d", slice_length),
+			"-y",
+			"-f", "mp4",
+			"-acodec", "aac",
+			"-ab", "96k",
+			"-ac", "2",
+			"-sws_flags", "lanczos",
+			"-vcodec", "libx264",
+			"-pix_fmt", "yuv420p",
+			"-vb", "256k",
+			"-vf", "\"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\"",
+			"-r", "24",
+		}
+	}else{
+		webm_cmd_args = []string{
+			"-ss", fmt.Sprintf("%d", pre_seek),
+			"-sn",
+			"-i", url,
+			"-max_muxing_queue_size", "50000",
+			"-ss", fmt.Sprintf("%d", accurate_seek),
+			"-t", fmt.Sprintf("%d", slice_length),
+			"-y",
+			"-f", "webm",
+			"-acodec", "libvorbis",
+			"-ac", "2",
+			"-sws_flags", "lanczos",
+			"-vcodec", "libvpx",
+			"-cpu-used", "3",
+			"-vb", "256k",
+			"-vf", "\"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\"",
+			"-r", "24",
+		}
+		mp4_cmd_args = []string{
+			"-ss", fmt.Sprintf("%d", pre_seek),
+			"-sn",
+			"-i", url,
+			"-max_muxing_queue_size", "50000",
+			"-ss", fmt.Sprintf("%d", accurate_seek),
+			"-t", fmt.Sprintf("%d", slice_length),
+			"-y",
+			"-f", "mp4",
+			"-acodec", "aac",
+			"-ab", "96k",
+			"-ac", "2",
+			"-sws_flags", "lanczos",
+			"-vcodec", "libx264",
+			"-pix_fmt", "yuv420p",
+			"-vb", "256k",
+			"-vf", "\"scale=min(920\\,iw):trunc(ow/a/2)*2,scale=trunc(oh*a/2)*2:min(524\\,ih)\"",
+			"-r", "24",
+		}
+	}
+
+	webm_cmd := exec.Command(
+		"ffmpeg",
+		webm_cmd_args...,
+	)
+
+	mp4_cmd := exec.Command(
+		"ffmpeg",
+		mp4_cmd_args...,
+	)
+
+	webm_results, webm_error := ExecuteFFMpegCommand(webm_cmd, fmt.Sprintf("%v.webm", tmp_file_name))
+	mp4_results, mp4_error := ExecuteFFMpegCommand(mp4_cmd, fmt.Sprintf("%v.mp4", tmp_file_name))
+
+	results := &FFMpegResults{}
+	results.FileNameWebm = webm_results.FileName
+	results.ErrorWebm = webm_error
+	results.FileNameMp4 = mp4_results.FileName
+	results.ErrorMP4 = mp4_error
+
+	return results
+}
 
 // Function used to run and return all ffprobe commands (genericized what can be generic)
 func ExecuteFFProbeCommand(cmd *exec.Cmd)(*Media, *MediaError){
